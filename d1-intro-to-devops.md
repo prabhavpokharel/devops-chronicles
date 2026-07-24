@@ -1,7 +1,5 @@
 # Introduction to DevOps
 
-**Day 1 Notes**
-
 ---
 
 ## 1. What is DevOps?
@@ -9,12 +7,14 @@
 DevOps is a set of practices, culture, and tooling that combines **Dev**elopment and **Op**erations into one continuous workflow, instead of treating them as separate teams with separate goals.
 
 Traditionally:
+
 - **Developers** wanted to ship new features fast.
 - **Operations** wanted stability and didn't want anything to break production.
 
 These two goals were in constant tension. DevOps is the discipline that removes that tension by making both teams (or one merged team) responsible for the *entire* lifecycle of software — writing it, testing it, deploying it, and keeping it running.
 
 It's not a single tool or job title — it's a combination of:
+
 - **Culture** (shared ownership, collaboration, no blame games)
 - **Practices** (CI/CD, automation, monitoring)
 - **Tools** (Git, Jenkins, Docker, Kubernetes, AWS, etc. — the tools we'll use throughout this course)
@@ -28,7 +28,7 @@ Without DevOps, software delivery tends to break down in predictable ways as tea
 ## 2. Problems DevOps Was Built to Solve
 
 | Problem | What it looks like in practice |
-|---|---|
+| --- | --- |
 | **The Silo Problem** | Dev and Ops sit in separate teams, don't talk, and often don't even use the same tools. Dev throws code "over the wall" to Ops and considers their job done. |
 | **"Works on My Machine"** | Code runs fine on a developer's laptop but breaks in staging or production due to differing environments, dependencies, or configurations. |
 | **Slow, Risky Releases** | Releases happen rarely (monthly/quarterly) because each one is a big, manual, high-risk event — so teams avoid releasing often, which makes each release even riskier when it does happen. |
@@ -43,7 +43,7 @@ DevOps exists specifically to break this cycle — by unifying teams, automating
 ## 3. Why We Do DevOps: The Payoff
 
 | Benefit | What it means |
-|---|---|
+| --- | --- |
 | **Ship faster** | Smaller, more frequent releases instead of big risky ones. |
 | **Break less** | Automation and testing catch problems before they reach users. |
 | **Recover faster** | When something does break, automated pipelines and monitoring make it fast to detect, roll back, or fix. |
@@ -114,7 +114,7 @@ This cycle (often drawn as the "infinity loop") repeats continuously — that's 
 ## 8. Product-Based vs Service-Based Companies
 
 | Aspect | Product-Based Company | Service-Based Company |
-|---|---|---|
+| --- | --- | --- |
 | **What they build** | Their own product, used by external customers (e.g. a SaaS platform) | Custom solutions/infrastructure for *client* companies |
 | **DevOps focus** | Deep ownership of one system's scalability, uptime, and continuous improvement over a long timeframe | Setting up and adapting DevOps practices repeatedly across different client environments and tech stacks |
 | **Pace/scope** | Long-term, iterative — same codebase evolves for years | Often project-based — different clients, different stacks, tighter deadlines |
@@ -144,7 +144,7 @@ The key skill here isn't building from scratch — it's **reading and understand
 A non-exhaustive overview of the tool categories (many of these we'll cover hands-on in this course):
 
 | Category | Example Tools |
-|---|---|
+| --- | --- |
 | Version Control | Git, GitHub, GitLab |
 | CI/CD | Jenkins, GitHub Actions, GitLab CI |
 | Containerization | Docker |
@@ -161,7 +161,7 @@ A non-exhaustive overview of the tool categories (many of these we'll cover hand
 DevOps skills open doors into several related but distinct roles. The tools overlap heavily, but the day-to-day focus differs:
 
 | Role | Focus |
-|---|---|
+| --- | --- |
 | **DevOps Engineer** | The generalist — owns CI/CD pipelines, automation, and the Dev↔Ops bridge end to end |
 | **Platform Engineer** | Builds internal tools/platforms that let *other* developers self-serve infrastructure (e.g. an internal deployment portal) rather than working pipeline-by-pipeline |
 | **Site Reliability Engineer (SRE)** | Focuses on uptime, reliability, and incident response — applies software engineering practices to operations problems (error budgets, SLOs/SLAs, on-call) |
@@ -184,6 +184,7 @@ In practice, most modern DevOps roles *are* heavily cloud-based, so the line blu
 ## Assignment: Explore — What is a Fork Bomb?
 
 **To research and write up:**
+
 - What a fork bomb actually is (a process that recursively spawns copies of itself)
 - Why it's relevant to a DevOps engineer (resource exhaustion, system stability, why process/resource limits like `ulimit` matter)
 - How it connects back to today's theme — a *tiny* mistake (a bad script, an infinite loop) can spiral into a full system outage if there's no safeguard in place, which is exactly the kind of "manual/no-safety-net" failure DevOps practices are designed to prevent
