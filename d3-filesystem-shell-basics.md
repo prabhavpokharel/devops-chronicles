@@ -179,19 +179,84 @@ On Ubuntu Server, this returns `multi-user.target` — the systemd equivalent of
 
 **Why this matters:** Ubuntu Server effectively lives at `multi-user.target` (multi-user, networked, no GUI) by design — consistent with the Server vs Desktop distinction covered above. It's also a useful sanity check on a real server: if it somehow boots into `rescue.target` or a graphical target unexpectedly, that's a sign something's misconfigured.
 
-### `/etc/passwd` and Users
+### What is `grep`?
 
-- `cat /etc/passwd` prints the system's **user account database** — one line per user, colon-separated fields (username, password placeholder, UID, GID, home directory, default shell, etc.). Actual password *hashes* are stored separately in `/etc/shadow` (root-readable only) for security — `/etc/passwd` itself is world-readable but doesn't contain real passwords.
-- `cat /etc/passwd | grep leapfrog` — pipes the full user list into `grep`, filtering to show only lines containing "leapfrog" (e.g. to check if a `leapfrog`-named user account exists on the system).
+`grep` is a command that **searches text for lines matching a pattern** and prints only the matching lines. Think of it as "find me every line containing this word."
+
+Basic usage: `grep "pattern" filename`
+
+Example:
+
+```bash
+grep "hello" myfile.txt
+```
+
+This prints every line in `myfile.txt` that contains the word "hello," and ignores every line that doesn't.
+
+`grep` is almost always used together with a **pipe** (`|`). A pipe takes the output of one command and feeds it as input into the next command, instead of printing it to the screen. So `command1 | grep "pattern"` means: "run `command1`, then only show me the lines from its output that match `pattern`."
+
+### `/etc/passwd` — What a Line Actually Looks Like
+
+Running `cat /etc/passwd` prints the whole file, one line per user account. A single line looks like this:
+
+```text
+chitti:x:1000:1000:Chitti,,,:/home/chitti:/bin/bash
+```
+
+This is **7 fields separated by colons (`:`)**. Breaking it down field by field, left to right:
+
+| Field # | Value in example | What it means |
+| --- | --- | --- |
+| 1 | `chitti` | **Username** — the login name |
+| 2 | `x` | **Password placeholder** — always shows `x` here; the *real* encrypted password is stored separately in `/etc/shadow` (a file only root can read), never in `/etc/passwd` itself, for security |
+| 3 | `1000` | **UID (User ID)** — a unique number identifying this user. `0` is always root. Regular human users on Ubuntu typically start at `1000` |
+| 4 | `1000` | **GID (Group ID)** — the user's primary group ID |
+| 5 | `Chitti,,,` | **GECOS field** — usually just the user's full name (the commas separate other optional info like room number/phone, rarely used) |
+| 6 | `/home/chitti` | **Home directory** — where this user lands when they log in, and what `~` expands to for them |
+| 7 | `/bin/bash` | **Login shell** — the program that runs when this user logs in. Normally a real shell like `/bin/bash`, but for service accounts this is often `/usr/sbin/nologin` instead (covered below) |
+
+So when you run:
+
+```bash
+cat /etc/passwd
+```
+
+You get the *entire* list — every user account on the system, one line each, in this same 7-field format.
+
+When you instead run:
+
+```bash
+cat /etc/passwd | grep leapfrog
+```
+
+Here's exactly what happens, step by step:
+
+1. `cat /etc/passwd` prints every line of the file (every user account).
+2. The `|` (pipe) takes that entire output and hands it to `grep` instead of showing it on screen.
+3. `grep leapfrog` filters through all those lines and prints **only** the ones containing the text "leapfrog."
+
+So if there's a user account named `leapfrog` on the system, running this would show just its one line — e.g.:
+
+```text
+leapfrog:x:1001:1001:Leapfrog User:/home/leapfrog:/bin/bash
+```
+
+— instead of scrolling through every other user account to find it manually.
 
 ### "Nologin" Users, `/bin/false`, `/sbin/nologin`
 
-Some entries in `/etc/passwd` are **service/system accounts**, not real human logins — e.g. accounts created automatically for things like mail delivery or system daemons. Their shell field is set to something like `/usr/sbin/nologin` or `/bin/false` instead of `/bin/bash`.
+Some entries in `/etc/passwd` are **service/system accounts**, not real human logins — created automatically for things like mail delivery or system daemons (background services). Their line looks like this:
 
-- **`/sbin/nologin`** — if someone tries to log in as this user, it prints a polite message ("This account is currently not available.") and exits.
-- **`/bin/false`** — similar effect, but more blunt — it's a program that does nothing and immediately returns "false" (failure), silently declining the login.
+```text
+sshd:x:105:65534::/run/sshd:/usr/sbin/nologin
+```
 
-**Why this matters:** these accounts exist for internal system purposes (e.g. running a specific service under its own restricted user) and should never be used interactively — assigning a no-login shell is the safeguard that enforces that.
+Same 7 fields as before — the important difference is the last field: instead of `/bin/bash`, it says `/usr/sbin/nologin`.
+
+- **`/sbin/nologin`** (or `/usr/sbin/nologin`) — if someone tries to log in as this user, it prints a polite message ("This account is currently not available.") and immediately exits, refusing the login.
+- **`/bin/false`** — a similar effect, but more blunt — it's a tiny program that does nothing and immediately reports "false" (failure), silently declining the login with no message at all.
+
+**Why this matters:** accounts like `sshd` above exist purely so a background service can run under its own restricted identity (rather than as root), for security separation. They were never meant for a human to actually log into — setting the shell to a "nologin" program is what enforces that, even if someone tried.
 
 ### `useradd`
 
