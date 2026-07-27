@@ -1,152 +1,155 @@
-# VM Setup — VirtualBox / VMware + Ubuntu Server
+# Building Your First Server — VirtualBox / VMware + Ubuntu Server
 
-**Task:** Install a virtualization tool (VMware or VirtualBox) and set up an Ubuntu Server edition VM.
+## Why This Comes First
 
-This is the foundation for the rest of the course — almost everything (Linux practice, Jenkins, Docker, Kubernetes) will run inside this VM or ones like it.
+Every DevOps engineer needs somewhere to practice that isn't the production internet. Before touching Docker, Jenkins, or Kubernetes, you need a machine you're free to break, misconfigure, and rebuild without consequence. That's what a virtual machine gives you — a real Linux server, fully isolated inside your own laptop, that you can wipe and start over as many times as it takes.
+
+Two choices matter here, and both are deliberate:
+
+- **A VM, not a dual-boot install.** Dual-booting Linux alongside Windows/Mac works, but a mistake can cost you your whole machine. A VM is disposable by design — if something breaks, you delete it and start again in ten minutes.
+- **Server edition, not Desktop.** Real infrastructure doesn't have a screen or a mouse attached to it. Production servers are managed entirely through the terminal, over SSH, often by engineers who've never seen the machine's actual hardware. Starting on Server edition from day one builds that habit early, rather than leaning on a GUI you won't have later.
+
+Everything below sets up exactly that: an isolated Ubuntu Server VM, reachable over SSH, sized to eventually run Docker and Kubernetes without struggling.
 
 ---
 
-## Why a VM, and why Server (not Desktop)?
+## Sizing the VM
 
-- A **VM** gives an isolated Linux environment on your Windows/Mac machine without dual-booting — safe to break things and reset.
-- **Server edition** (not Desktop) is used because real DevOps work happens over the command line, not a GUI — servers in production never have a desktop environment. Learning to work entirely via terminal/SSH from day one builds the right habits.
+Since this machine will later run containers and orchestration tools, size it with that in mind rather than the bare minimum:
+
+| Resource | Minimum | Recommended |
+| --- | --- | --- |
+| Memory | 2048 MB | 4096 MB — containers add up fast |
+| Processors | 2 cores | 2 cores |
+| Hard disk | 20 GB | 40–50 GB, stored as a single file for better I/O performance |
+| Network | NAT | NAT — gives internet access for package installs while keeping the VM isolated |
 
 ---
 
-## Option A: VirtualBox (recommended — free, lighter, widely used in training)
+## Option A: VirtualBox
+
+VirtualBox is the more common choice for training environments — it's free, lighter on resources, and well documented.
 
 ### 1. Install VirtualBox
 
-1. Download from [virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads) for your OS (Windows/Mac).
-2. Run the installer, accept defaults.
-3. Also install the **VirtualBox Extension Pack** from the same page (adds USB support, etc. — optional but useful).
+1. Download it from [virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads) for your OS.
+2. Run the installer, accepting the defaults.
+3. Install the **VirtualBox Extension Pack** from the same page — optional, but adds USB support and a few other conveniences worth having.
 
-### 2. Download Ubuntu Server ISO
+### 2. Download the Ubuntu Server ISO
 
 1. Go to [ubuntu.com/download/server](https://ubuntu.com/download/server).
-2. Download the latest **LTS** version (LTS = Long Term Support, more stable — preferred for learning/production over the newest short-term release).
+2. Download the latest **LTS** release. LTS stands for Long Term Support — it's the more stable, longer-maintained line, and the standard choice for both learning and production over the newest short-term release.
 
 ### 3. Create and configure the VM
 
-1. Open VirtualBox → click **New**.
+1. Open VirtualBox and click **New**.
 2. Name and OS:
    - Name: `devops-server-01`
    - Type: **Linux**
    - Version: **Ubuntu (64-bit)**
-   - ISO Image: leave as **Not selected** for now — this avoids VirtualBox's automated "unattended install," which skips manual setup steps worth doing by hand while learning. Click **Next**.
+   - ISO Image: leave as **Not selected** for now. This skips VirtualBox's automated "unattended install," which quietly configures things for you and bypasses steps that are worth doing manually while you're still learning what they mean. Click **Next**.
 3. Hardware: allocate at least **2048 MB RAM** and **2 CPUs**. Leave "Enable EFI" unchecked. Click **Next**.
-4. Virtual Hard Disk: select **Create a Virtual Hard Disk Now**, set size to **40 GB**, format **VDI** (dynamically allocated). Click **Next**, then **Finish**.
+4. Virtual hard disk: choose **Create a Virtual Hard Disk Now**, set the size to **40 GB**, format **VDI** (dynamically allocated). Click **Next**, then **Finish**.
 5. Mount the ISO:
-   - Select the VM → **Settings** (gear icon) → **Storage** tab.
-   - Under "Storage Devices," click the empty optical drive icon.
-   - Click the disk icon on the right → **Choose a disk file** → select the downloaded Ubuntu Server ISO.
-6. Network configuration:
-   - Go to the **Network** tab → ensure Adapter 1 is enabled and attached to **NAT**.
-   - Click **Advanced → Port Forwarding** → add a new rule:
+   - Select the VM, open **Settings** (gear icon), go to the **Storage** tab.
+   - Click the empty optical drive icon under "Storage Devices."
+   - Click the disk icon on the right, choose **Choose a disk file**, and select the Ubuntu Server ISO you downloaded.
+6. Configure networking:
+   - Go to the **Network** tab, confirm Adapter 1 is enabled and attached to **NAT**.
+   - Click **Advanced → Port Forwarding**, and add a rule:
      - Name: `SSH`, Protocol: `TCP`, Host Port: `2222`, Guest Port: `22`
-   - This lets you SSH into the VM from your host machine using `localhost:2222`, without needing Bridged networking.
+   - This single rule is what lets you SSH into the VM later from your own terminal using `localhost:2222`, without needing to fuss with bridged networking.
 
 ### 4. Install Ubuntu Server
 
-Click **Start** to boot the VM and step through the installer:
+Start the VM and work through the installer:
 
 1. **Boot menu** — select "Welcome to Ubuntu Server," press Enter.
-2. **Language & keyboard** — pick your preferences.
-3. **Type of install** — Ubuntu Server (default).
-4. **Networking** — the installer shows an IP from VirtualBox's NAT engine (usually `10.0.2.15`). Leave as default.
-5. **Storage setup** — keep **Use an entire disk** checked, and ensure **Set up this disk as an LVM group** is selected (useful for resizing disk space later once Docker/Kubernetes start filling it up). Confirm the destructive action when prompted.
-6. **Profile setup** — enter your name, server name, username, and password. Remember these.
-7. **SSH setup** — press Spacebar to check **Install OpenSSH server**.
-8. **Featured snaps** — leave unchecked; install DevOps tools manually later.
-9. Let installation finish, then select **Reboot Now**. If prompted to remove installation media, just press Enter — VirtualBox unmounts the ISO automatically.
+2. **Language & keyboard** — set your preferences.
+3. **Type of install** — Ubuntu Server (the default).
+4. **Networking** — the installer will already show an IP assigned by VirtualBox's NAT engine, typically `10.0.2.15`. Leave it as-is.
+5. **Storage setup** — keep **Use an entire disk** checked, and make sure **Set up this disk as an LVM group** is selected. LVM (Logical Volume Manager) lets you resize disk partitions later without reinstalling — genuinely useful once Docker images and Kubernetes testing start eating disk space. Confirm the destructive action when prompted.
+6. **Profile setup** — enter your name, server name, username, and password. These are the credentials you'll use for the rest of the course, so make sure they're memorable.
+7. **SSH setup** — press Spacebar to check **Install OpenSSH server**. Without this, there's no way to connect to the machine remotely at all.
+8. **Featured snaps** — leave everything unchecked. Tools like Docker get installed manually later, deliberately, not bundled in automatically here.
+9. Let the installation finish, then select **Reboot Now**. If it prompts you to remove the installation media, just press Enter — both VirtualBox and VMware handle this automatically in most recent versions.
 
 ### 5. Post-install setup
 
-**Update the system:**
+Update the system first, before anything else:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-**Install VirtualBox Guest Utilities** — VirtualBox's equivalent of VMware's guest tools; manages system states, shared folders, and time sync inside the VM:
+Install VirtualBox's guest utilities — the equivalent of VMware's guest tools, handling shared folders, time sync, and general integration between host and VM:
 
 ```bash
 sudo apt install virtualbox-guest-utils -y
 ```
 
-**Verify remote access** — from your actual host machine's terminal (CMD, PowerShell, or macOS Terminal):
+Then verify remote access actually works, from your host machine's own terminal (not inside the VM window):
 
 ```bash
 ssh username@127.0.0.1 -p 2222
 ```
 
-(Using the port forwarding rule set up in step 3 — replace `username` with your login account.)
+This uses the port forwarding rule set up earlier — replace `username` with the account you created during install.
 
 ---
 
-## Hardware Requirements for a DevOps Lab VM
+## Option B: VMware Workstation
 
-Since this VM will later run Docker, Kubernetes, and Ansible, size it accordingly:
-
-| Resource | Minimum | Recommended |
-| --- | --- | --- |
-| Memory | 2048 MB | 4096 MB (for running containers comfortably) |
-| Processors | 2 cores | 2 cores |
-| Hard Disk | 20 GB | 40–50 GB, stored as a single file for better I/O performance |
-| Network | NAT | NAT (internet access for packages, while keeping the VM isolated) |
-
----
-
-## Option B: VMware Workstation (detailed walkthrough)
+The overall flow is the same as VirtualBox; the interface and a few defaults differ.
 
 ### 1. Create the VM
 
-1. Open VMware Workstation → **Create a New Virtual Machine**.
+1. Open VMware Workstation, select **Create a New Virtual Machine**.
 2. Choose **Typical (recommended)**.
-3. Select **I will install the operating system later** — this avoids VMware's "Easy Install," which auto-configures things and skips manual setup steps that are worth doing by hand while learning.
+3. Select **I will install the operating system later**. This avoids VMware's "Easy Install," which — like VirtualBox's unattended install — auto-configures the OS and skips manual steps worth doing by hand while learning.
 4. Guest OS: **Linux**, Version: **Ubuntu 64-bit**.
-5. Name the VM (e.g. `devops-server-01`).
-6. Set disk size to **40 GB+**, and select **Store virtual disk as a single file**.
-7. Click **Customize Hardware** → under CD/DVD, select **Use ISO image file** and browse to the downloaded Ubuntu Server ISO.
-8. Optional cleanup: remove the Sound Card and Printer from the hardware list — unnecessary overhead for a headless server VM.
+5. Name the VM, e.g. `devops-server-01`.
+6. Set disk size to **40 GB or more**, and select **Store virtual disk as a single file**.
+7. Click **Customize Hardware**, then under CD/DVD select **Use ISO image file** and browse to the Ubuntu Server ISO.
+8. Optional: remove the Sound Card and Printer from the hardware list. Neither is needed on a headless server VM, and trimming them reduces unnecessary overhead.
 9. Click **Finish**.
 
 ### 2. Install Ubuntu Server
 
-Boot the VM and step through the installer (arrow keys, `TAB`, `Enter`):
+Boot the VM and step through the installer using the arrow keys, `TAB`, and `Enter`:
 
-1. **Language & keyboard** — pick your preferences.
-2. **Type of install** — choose **Ubuntu Server** (not "minimized," unless resources are very constrained).
-3. **Networking** — leave default; DHCP will assign an IP automatically via VMware NAT.
-4. **Storage** — select **Use an entire disk**, and enable **Set up this disk as an LVM group**.
-   - **Why LVM matters:** LVM (Logical Volume Manager) lets you resize partitions later without reinstalling — genuinely useful once you start filling disk space with Docker images and Kubernetes testing.
-5. **Profile setup** — enter your name, server name, username, and password. Remember these.
-6. **SSH setup** — check **Install OpenSSH server**. This is what lets you connect remotely later via terminal, PuTTY, MobaXterm, or VS Code's remote SSH extension, instead of working inside the VMware console window.
-7. **Featured snaps** — leave unchecked; DevOps tools (Docker, etc.) get installed manually later, not via snap.
-8. Select **Done**, let installation finish, then **Reboot Now**.
-9. If prompted to remove the installation medium: go to VMware settings, disconnect the CD/DVD drive, then press `Enter`.
+1. **Language & keyboard** — set preferences.
+2. **Type of install** — choose **Ubuntu Server**, not "minimized," unless you're working under severe resource constraints.
+3. **Networking** — leave as default; DHCP assigns an IP automatically through VMware's NAT.
+4. **Storage** — select **Use an entire disk**, and enable **Set up this disk as an LVM group**, for the same resizing flexibility described above.
+5. **Profile setup** — enter your name, server name, username, and password.
+6. **SSH setup** — check **Install OpenSSH server**. This is what enables remote connections later via terminal, PuTTY, MobaXterm, or VS Code's remote SSH extension, instead of working inside VMware's console window indefinitely.
+7. **Featured snaps** — leave unchecked.
+8. Select **Done**, wait for installation to finish, then choose **Reboot Now**.
+9. If prompted to remove the installation medium, go into VMware's settings, disconnect the CD/DVD drive, then press `Enter`.
 
 ### 3. Post-install setup
 
-**Update the system:**
+Update the system:
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 ```
 
-**Install VMware Guest Tools** — improves VM performance, resource handling, and power-state behavior (shutdown/restart signals working correctly from the host):
+Install VMware's guest tools, which improve performance and make shutdown/restart signals from the host behave correctly:
 
 ```bash
 sudo apt install open-vm-tools -y
 ```
 
-**Check network/IP and confirm SSH access:**
+Check the VM's IP address:
 
 ```bash
 ip a
 ```
 
-Look for the IP under your network interface (commonly named `ens*` or `eth*`), then from your host machine:
+Look for the address under the network interface, usually named `ens*` or `eth*`. Then, from your host machine's own terminal:
 
 ```bash
 ssh username@your_vm_ip
@@ -154,28 +157,28 @@ ssh username@your_vm_ip
 
 ---
 
-## DevOps Best Practice: Take a Snapshot
+## Take a Snapshot Before Going Further
 
-Before installing Docker, Kubernetes, or any configuration-management agents, shut the VM down and take a snapshot:
+Before installing Docker, Kubernetes, or any configuration-management tooling, shut the VM down and take a snapshot of it in its clean state:
 
-- **VMware:** Right-click the VM → Snapshot → Take Snapshot. Name it `Clean OS Baseline`.
-- **VirtualBox:** Click the hamburger menu next to the VM name → **Snapshots** → **Take**. Name it `Base_OS_Installed`.
+- **VMware:** right-click the VM, select Snapshot → Take Snapshot, name it `Clean OS Baseline`.
+- **VirtualBox:** open the hamburger menu next to the VM's name, go to Snapshots, click Take, name it `Base_OS_Installed`.
 
-Why this matters: once you start running setup scripts and experimenting (which is normal in DevOps practice), things *will* break occasionally. A clean baseline snapshot means you can roll back instantly instead of reinstalling the whole OS from scratch.
+The reasoning is simple. Setup scripts break things — that's not a hypothetical, it's a near-certainty once you start experimenting with configuration tools. A clean baseline snapshot means a broken environment is a two-minute rollback instead of a full reinstall.
 
 ---
 
 ## Common Gotchas
 
-- **Forgetting to remove the ISO after install** → VM boots back into the installer instead of the installed OS. Fix in Settings → Storage. (Usually automatic on both VMware and VirtualBox now, but worth checking if it boots wrong.)
-- **Port forwarding rule missing or wrong** (VirtualBox) → if `ssh username@127.0.0.1 -p 2222` fails, double check the NAT port forwarding rule (Host Port 2222 → Guest Port 22) under Settings → Network → Advanced.
-- **Not enough RAM allocated** → things like Docker/Kubernetes later in the course will struggle below 2GB; bump it up if your host machine allows.
-- **Typing the password wrong during setup and not realizing** → Ubuntu Server install hides the password as you type it (no dots/asterisks) — easy to mistype without noticing.
-- **Skipping the snapshot before installing Docker/Kubernetes** → if a setup script breaks the OS, there's no quick way back without a baseline snapshot taken beforehand.
-- **Skipping LVM during storage setup** → makes resizing disk space later (once containers/images pile up) much harder.
+- **ISO still mounted after install.** The VM boots back into the installer instead of the OS itself. Check Settings → Storage — most recent versions of both tools handle this automatically, but it's worth confirming if the boot looks wrong.
+- **Port forwarding misconfigured (VirtualBox).** If `ssh username@127.0.0.1 -p 2222` fails, recheck the NAT port forwarding rule under Settings → Network → Advanced — Host Port 2222 should map to Guest Port 22.
+- **Insufficient RAM.** Docker and Kubernetes will struggle below 2GB. Increase the allocation if your host machine has the headroom.
+- **Silent password typos during install.** Ubuntu Server's installer hides password input completely — no dots, no asterisks — so a mistyped password can go unnoticed until login fails.
+- **No snapshot before installing Docker/Kubernetes.** Without one, a broken setup script means reinstalling from scratch rather than rolling back.
+- **Skipping LVM during storage setup.** Makes resizing disk space later, once containers and images accumulate, considerably harder than it needs to be.
 
 ---
 
-## Next Steps
+## What Comes Next
 
-Once the VM is up and you can log in (either via the VirtualBox window or SSH), you're ready for hands-on Linux basics — navigating the filesystem, users/permissions, and basic shell commands.
+Once the VM is running and reachable — either through the console window or over SSH — the environment is ready for the actual Linux work: navigating the filesystem, understanding users and permissions, and building fluency with the shell.
