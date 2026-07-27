@@ -301,12 +301,3 @@ rm my file.txt
 Handling it correctly means either quoting the name — `rm "my file.txt"` — or escaping the space directly — `rm my\ file.txt`. In practice, letting the terminal's tab-completion fill in the filename does this automatically and is the safest habit to build.
 
 Characters like `$`, `*`, `&`, `(`, and `)` carry their own meaning to the shell — wildcards, variables, backgrounding a process — so filenames containing them should almost always be quoted too, to stop the shell from interpreting them instead of treating them as plain text.
-
----
-
-## What to Verify Against Class
-
-A couple of points worth double-checking against how Ayush actually presented them, since conventions can vary slightly by distribution:
-
-- Whether the run-level explanation matched the systemd-target framing above, or used a different distribution's convention.
-- Whether `/srv` was shown with an actual live FTP example, or discussed only conceptually.
